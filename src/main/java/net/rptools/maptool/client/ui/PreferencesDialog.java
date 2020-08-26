@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Objects;
-import java.util.ServiceConfigurationError;
 import java.util.stream.Stream;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -49,6 +48,7 @@ import javax.swing.event.DocumentListener;
 import net.rptools.lib.swing.SwingUtil;
 import net.rptools.maptool.client.AppConstants;
 import net.rptools.maptool.client.AppPreferences;
+import net.rptools.maptool.client.AppUtil;
 import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.functions.MediaPlayerAdapter;
 import net.rptools.maptool.client.swing.FormPanelI18N;
@@ -177,12 +177,15 @@ public class PreferencesDialog extends JDialog {
             }
           }
 
+          boolean close = true;
           if (jvmValuesChanged) {
-            UserJvmOptions.saveAppCfg();
+            close = UserJvmOptions.saveAppCfg();
           }
 
-          setVisible(false);
-          dispose();
+          if (close) {
+            setVisible(false);
+            dispose();
+          }
           MapTool.getEventDispatcher().fireEvent(MapTool.PreferencesEvent.Changed);
         });
 
@@ -943,30 +946,34 @@ public class PreferencesDialog extends JDialog {
     fileSyncPath.setText(AppPreferences.getFileSyncPath());
 
     // get JVM User Defaults/User override preferences
-    try {
-      UserJvmOptions.loadAppCfg();
+    if (AppUtil.getAppCfgFile() == null || !AppUtil.getAppCfgFile().canWrite()) {
+      int ind = tabbedPane.indexOfTab("Startup");
+      if (ind >= 0) {
+        tabbedPane.removeTabAt(ind);
+      }
+    } else {
+      if (!UserJvmOptions.loadAppCfg()) {
+        tabbedPane.setEnabledAt(tabbedPane.indexOfTab("Startup"), false);
+      } else {
+        try {
 
-      jvmXmxTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.MAX_MEM));
-      jvmXmsTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.MIN_MEM));
-      jvmXssTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.STACK_SIZE));
-      dataDirTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.DATA_DIR));
+          jvmXmxTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.MAX_MEM));
+          jvmXmsTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.MIN_MEM));
+          jvmXssTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.STACK_SIZE));
+          dataDirTextField.setText(UserJvmOptions.getJvmOption(JVM_OPTION.DATA_DIR));
 
-      jvmDirect3dCheckbox.setSelected(UserJvmOptions.hasJvmOption(JVM_OPTION.JAVA2D_D3D));
-      jvmOpenGLCheckbox.setSelected(UserJvmOptions.hasJvmOption(JVM_OPTION.JAVA2D_OPENGL_OPTION));
-      jvmInitAwtCheckbox.setSelected(
-          UserJvmOptions.hasJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION));
+          jvmDirect3dCheckbox.setSelected(UserJvmOptions.hasJvmOption(JVM_OPTION.JAVA2D_D3D));
+          jvmOpenGLCheckbox.setSelected(
+              UserJvmOptions.hasJvmOption(JVM_OPTION.JAVA2D_OPENGL_OPTION));
+          jvmInitAwtCheckbox.setSelected(
+              UserJvmOptions.hasJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION));
 
-      jamLanguageOverrideComboBox.setSelectedItem(
-          UserJvmOptions.getJvmOption(JVM_OPTION.LOCALE_LANGUAGE));
-    } catch (UnsatisfiedLinkError | NoClassDefFoundError | ServiceConfigurationError e) {
-      log.warn(
-          "Warning, unable to get JVM options from preferences. Most likely cause, manual launch of JAR.");
-      tabbedPane.setEnabledAt(tabbedPane.indexOfTab("Startup"), false);
-    } catch (Exception e) {
-      log.error(
-          "Error getting JVM options from preferences. Most likely cause, manual launch of JAR.",
-          e);
-      tabbedPane.setEnabledAt(tabbedPane.indexOfTab("Startup"), false);
+          jamLanguageOverrideComboBox.setSelectedItem(
+              UserJvmOptions.getJvmOption(JVM_OPTION.LOCALE_LANGUAGE));
+        } catch (Exception e) {
+          log.error("Unable to retrieve JVM user options!", e);
+        }
+      }
     }
 
     Integer rawVal = AppPreferences.getTypingNotificationDuration();
@@ -994,7 +1001,7 @@ public class PreferencesDialog extends JDialog {
   }
 
   /** @author frank */
-  private abstract class DocumentListenerProxy<T> implements DocumentListener {
+  private abstract static class DocumentListenerProxy<T> implements DocumentListener {
 
     JTextField comp;
 
@@ -1031,7 +1038,7 @@ public class PreferencesDialog extends JDialog {
   }
 
   /** @author frank */
-  private abstract class ChangeListenerProxy implements ChangeListener {
+  private abstract static class ChangeListenerProxy implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent ce) {

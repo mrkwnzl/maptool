@@ -29,7 +29,6 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -97,7 +96,7 @@ public class Token extends BaseModel implements Cloneable {
 
     private String displayName;
 
-    private TokenShape(String displayName) {
+    TokenShape(String displayName) {
       this.displayName = displayName;
     }
 
@@ -169,11 +168,7 @@ public class Token extends BaseModel implements Cloneable {
   }
 
   public static final Comparator<Token> NAME_COMPARATOR =
-      new Comparator<Token>() {
-        public int compare(Token o1, Token o2) {
-          return o1.getName().compareToIgnoreCase(o2.getName());
-        }
-      };
+      (o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName());
 
   private final Map<String, MD5Key> imageAssetMap;
   private String currentImageAsset;
@@ -258,7 +253,7 @@ public class Token extends BaseModel implements Cloneable {
   private double terrainModifier = 0.0d;
   private TerrainModifierOperation terrainModifierOperation = TerrainModifierOperation.NONE;
   private Set<TerrainModifierOperation> terrainModifiersIgnored =
-      new HashSet<>(Arrays.asList(TerrainModifierOperation.NONE));
+      new HashSet<>(Collections.singletonList(TerrainModifierOperation.NONE));
 
   private boolean isFlippedX;
   private boolean isFlippedY;
@@ -303,13 +298,6 @@ public class Token extends BaseModel implements Cloneable {
   private Map<Integer, MacroButtonProperties> macroPropertiesMap;
 
   private Map<String, String> speechMap;
-
-  // Deprecated, here to allow deserialization
-  @SuppressWarnings("unused")
-  private transient int size; // 1.3b16
-
-  @SuppressWarnings("unused")
-  private transient List<Vision> visionList; // 1.3b18
 
   private HeroLabData heroLabData;
 
@@ -515,9 +503,6 @@ public class Token extends BaseModel implements Cloneable {
       sightType = MapTool.getCampaign().getCampaignProperties().getDefaultSightType();
       e.printStackTrace();
     }
-
-    // state = null;
-    visionList = null;
   }
 
   public void setHasSight(boolean hasSight) {
@@ -921,8 +906,7 @@ public class Token extends BaseModel implements Cloneable {
 
   public boolean hasOwnerOnlyAuras() {
     if (lightSourceList != null) {
-      for (ListIterator<AttachedLightSource> i = lightSourceList.listIterator(); i.hasNext(); ) {
-        AttachedLightSource als = i.next();
+      for (AttachedLightSource als : lightSourceList) {
         LightSource lightSource = MapTool.getCampaign().getLightSource(als.getLightSourceId());
         if (lightSource != null) {
           List<Light> lights = lightSource.getLightList();
@@ -939,8 +923,7 @@ public class Token extends BaseModel implements Cloneable {
 
   public boolean hasGMAuras() {
     if (lightSourceList != null) {
-      for (ListIterator<AttachedLightSource> i = lightSourceList.listIterator(); i.hasNext(); ) {
-        AttachedLightSource als = i.next();
+      for (AttachedLightSource als : lightSourceList) {
         LightSource lightSource = MapTool.getCampaign().getLightSource(als.getLightSourceId());
         if (lightSource != null) {
           List<Light> lights = lightSource.getLightList();
@@ -957,8 +940,7 @@ public class Token extends BaseModel implements Cloneable {
 
   public boolean hasLightSourceType(LightSource.Type lightType) {
     if (lightSourceList != null) {
-      for (ListIterator<AttachedLightSource> i = lightSourceList.listIterator(); i.hasNext(); ) {
-        AttachedLightSource als = i.next();
+      for (AttachedLightSource als : lightSourceList) {
         LightSource lightSource = MapTool.getCampaign().getLightSource(als.getLightSourceId());
         if (lightSource != null && lightSource.getType() == lightType) {
           return true;
@@ -972,14 +954,11 @@ public class Token extends BaseModel implements Cloneable {
     if (lightSourceList == null) {
       return;
     }
-    for (ListIterator<AttachedLightSource> i = lightSourceList.listIterator(); i.hasNext(); ) {
-      AttachedLightSource als = i.next();
-      if (als != null
-          && als.getLightSourceId() != null
-          && als.getLightSourceId().equals(source.getId())) {
-        i.remove();
-      }
-    }
+    lightSourceList.removeIf(
+        als ->
+            als != null
+                && als.getLightSourceId() != null
+                && als.getLightSourceId().equals(source.getId()));
   }
 
   /** Clear the lightSourceList */
@@ -994,8 +973,7 @@ public class Token extends BaseModel implements Cloneable {
     if (lightSourceList == null) {
       return false;
     }
-    for (ListIterator<AttachedLightSource> i = lightSourceList.listIterator(); i.hasNext(); ) {
-      AttachedLightSource als = i.next();
+    for (AttachedLightSource als : lightSourceList) {
       if (als != null
           && als.getLightSourceId() != null
           && als.getLightSourceId().equals(source.getId())) {
@@ -1049,8 +1027,9 @@ public class Token extends BaseModel implements Cloneable {
     }
   }
 
+  /** @return the set of owner names of the token. */
   public Set<String> getOwners() {
-    return ownerList != null ? Collections.unmodifiableSet(ownerList) : new HashSet<String>();
+    return ownerList != null ? Collections.unmodifiableSet(ownerList) : new HashSet<>();
   }
 
   public boolean isOwnedByAll() {
@@ -1150,10 +1129,8 @@ public class Token extends BaseModel implements Cloneable {
     assetSet.add(charsheetImage);
     assetSet.add(portraitImage);
 
-    if (heroLabData != null) {
-      if (heroLabData.getAllAssetIDs() != null) {
-        assetSet.addAll(heroLabData.getAllAssetIDs());
-      }
+    if (heroLabData != null && heroLabData.getAllAssetIDs() != null) {
+      assetSet.addAll(heroLabData.getAllAssetIDs());
     }
 
     assetSet.remove(null); // Clean up from any null values from above
@@ -1397,7 +1374,7 @@ public class Token extends BaseModel implements Cloneable {
     // Lets account for ISO images
     double iso_ho = 0;
     if (getShape() == TokenShape.FIGURE) {
-      double th = getHeight() * Double.valueOf(footprintBounds.width) / getWidth();
+      double th = getHeight() * (double) footprintBounds.width / getWidth();
       iso_ho = footprintBounds.height - th;
       footprintBounds =
           new Rectangle(
@@ -1731,6 +1708,13 @@ public class Token extends BaseModel implements Cloneable {
     return getEvaluatedProperty(null, key);
   }
 
+  /**
+   * Returns the evaluated property corresponding to the key.
+   *
+   * @param resolver the variable resolver to parse code inside the property
+   * @param key the key of the value
+   * @return the value
+   */
   public Object getEvaluatedProperty(MapToolVariableResolver resolver, String key) {
     Object val = getProperty(key);
     if (val == null) {
@@ -1748,6 +1732,13 @@ public class Token extends BaseModel implements Cloneable {
     }
     if (val == null) {
       return "";
+    }
+    // First we try convert it to a JSON array. Fixes #2057.
+    if (val.toString().trim().startsWith("[")) {
+      JsonElement json = JSONMacroFunctions.getInstance().asJsonElement(val.toString());
+      if (json.isJsonArray()) {
+        return json;
+      }
     }
     try {
       if (log.isDebugEnabled()) {
@@ -1769,9 +1760,9 @@ public class Token extends BaseModel implements Cloneable {
       val = "";
     } else {
       // Finally we try convert it to a JSON object. Fixes #1560.
-      if (val.toString().trim().startsWith("[") || val.toString().trim().startsWith("{")) {
+      if (val.toString().trim().startsWith("{")) {
         JsonElement json = JSONMacroFunctions.getInstance().asJsonElement(val.toString());
-        if (json.isJsonObject() || json.isJsonArray()) {
+        if (json.isJsonObject()) {
           return json;
         }
       }
@@ -1801,11 +1792,10 @@ public class Token extends BaseModel implements Cloneable {
       return;
     }
     MacroButtonProperties prop;
-    Set<String> oldMacros = macroMap.keySet();
-    for (String macro : oldMacros) {
+    for (var macro : macroMap.entrySet()) {
       prop = new MacroButtonProperties(getMacroNextIndex());
-      prop.setLabel(macro);
-      prop.setCommand(macroMap.get(macro));
+      prop.setLabel(macro.getKey());
+      prop.setCommand(macro.getValue());
       prop.setApplyToTokens(true);
       macroPropertiesMap.put(prop.getIndex(), prop);
     }
@@ -1930,10 +1920,7 @@ public class Token extends BaseModel implements Cloneable {
   }
 
   public boolean hasMacros(boolean secure) {
-    if (!getMacroPropertiesMap(secure).isEmpty()) {
-      return true;
-    }
-    return false;
+    return !getMacroPropertiesMap(secure).isEmpty();
   }
 
   public void setSpeechMap(Map<String, String> map) {
@@ -2169,8 +2156,9 @@ public class Token extends BaseModel implements Cloneable {
     @SuppressWarnings("unchecked")
     Map<String, Object> macros = (Map<String, Object>) td.get(TokenTransferData.MACROS);
     macroMap = new HashMap<String, String>();
-    for (String macroName : macros.keySet()) {
-      Object macro = macros.get(macroName);
+    for (var entry : macros.entrySet()) {
+      String macroName = entry.getKey();
+      Object macro = entry.getValue();
       if (macro instanceof String) {
         macroMap.put(macroName, (String) macro);
       } else if (macro instanceof Map) {
@@ -2229,7 +2217,7 @@ public class Token extends BaseModel implements Cloneable {
     if (integer == null) {
       return defaultValue;
     }
-    return integer.intValue();
+    return integer;
   }
 
   /**
@@ -2246,7 +2234,7 @@ public class Token extends BaseModel implements Cloneable {
     if (bool == null) {
       return defaultValue;
     }
-    return bool.booleanValue();
+    return bool;
   }
 
   /**
@@ -2259,7 +2247,7 @@ public class Token extends BaseModel implements Cloneable {
     Zone zone = getZoneRenderer().getZone();
     List<Integer> list = zone.getInitiativeList().indexOf(this);
     if (list.isEmpty()) {
-      return Collections.EMPTY_LIST;
+      return Collections.emptyList();
     }
     List<InitiativeList.TokenInitiative> ret = new ArrayList<>(list.size());
     for (Integer index : list) {
@@ -2344,22 +2332,18 @@ public class Token extends BaseModel implements Cloneable {
   }
 
   public static final Comparator<Token> COMPARE_BY_NAME =
-      new Comparator<Token>() {
-        public int compare(Token o1, Token o2) {
-          if (o1 == null || o2 == null) {
-            return 0;
-          }
-          return o1.getName().compareTo(o2.getName());
+      (o1, o2) -> {
+        if (o1 == null || o2 == null) {
+          return 0;
         }
+        return o1.getName().compareTo(o2.getName());
       };
   public static final Comparator<Token> COMPARE_BY_ZORDER =
-      new Comparator<Token>() {
-        public int compare(Token o1, Token o2) {
-          if (o1 == null || o2 == null) {
-            return 0;
-          }
-          return o1.z < o2.z ? -1 : o1.z == o2.z ? 0 : 1;
+      (o1, o2) -> {
+        if (o1 == null || o2 == null) {
+          return 0;
         }
+        return Integer.compare(o1.z, o2.z);
       };
 
   @Override

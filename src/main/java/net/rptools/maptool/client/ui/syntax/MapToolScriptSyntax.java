@@ -16,6 +16,7 @@ package net.rptools.maptool.client.ui.syntax;
 
 import java.util.Map;
 import net.rptools.maptool.client.MapTool;
+import net.rptools.maptool.client.MapToolExpressionParser;
 import net.rptools.maptool.client.functions.DefinesSpecialVariables;
 import net.rptools.maptool.client.functions.UserDefinedMacroFunctions;
 import net.rptools.parser.function.Function;
@@ -115,7 +116,7 @@ public class MapToolScriptSyntax extends MapToolScriptTokenMaker {
     for (String operators : OPERATORS) macroFunctionTokenMap.put(operators, Token.OPERATOR);
 
     // Add "highlights defined by functions like Special Variables" as Data Type
-    for (Function function : MapTool.getParser().getMacroFunctions()) {
+    for (Function function : MapToolExpressionParser.getMacroFunctions()) {
       if (function instanceof DefinesSpecialVariables) {
         for (String specialVariable : ((DefinesSpecialVariables) function).getSpecialVariables()) {
           macroFunctionTokenMap.put(specialVariable, Token.DATA_TYPE);
@@ -149,12 +150,15 @@ public class MapToolScriptSyntax extends MapToolScriptTokenMaker {
 
         Map<String, String> macroMap = MapTool.getParser().listAllMacroFunctions();
 
-        for (String macro : macroMap.keySet()) {
-          if (macroMap.get(macro).equals(UserDefinedMacroFunctions.class.getName()))
+        for (var entry : macroMap.entrySet()) {
+          String macro = entry.getKey();
+          if (entry.getValue().equals(UserDefinedMacroFunctions.class.getName())) {
             macroFunctionTokenMap.put(macro, Token.ANNOTATION);
-          else macroFunctionTokenMap.put(macro, Token.FUNCTION);
+          } else {
+            macroFunctionTokenMap.put(macro, Token.FUNCTION);
+          }
 
-          log.debug("Adding \"" + macro + "\" macro function to syntax highlighting.");
+          log.debug("Adding \"" + entry + "\" macro function to syntax highlighting.");
         }
       }
     }

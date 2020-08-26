@@ -58,10 +58,11 @@ ext {
     def foundTags = (tagVersion =~ /\d+\.\d+\.\d+/).findAll()
 
     // If no semver exists, like in dev environment use a defaultVersion from gradle.properties
-    if (appSemVer.isEmpty()) {
+    if (foundTags.isEmpty()) {
         appSemVer = defaultVersion
     } else {
         appSemVer = foundTags[0]
+        developerRelease = ""
     }
 
     // vendor, tagVersion, appSemVer, and DSN's defaults are set in gradle.properties
@@ -148,7 +149,8 @@ runtime {
                     '--win-per-user-install',
                     '--win-shortcut',
                     '--win-menu',
-                    '--win-menu-group', vendor
+                    '--win-menu-group', vendor,
+                    '--win-upgrade-uuid', 'e58a0cbe-ca04-11ea-87d0-0242ac130003'
             ]
         }
 
@@ -224,8 +226,8 @@ dependencies {
     implementation 'net.rptools.decktool:decktool:1.0.b1'
     implementation 'com.github.RPTools:clientserver:1.4.0.0'
     implementation 'com.github.RPTools:maptool-resources:1.6.0'
-    implementation 'com.github.RPTools:parser:1.8.0'
-    implementation 'com.github.RPTools:dicelib:1.6.3'
+    implementation 'com.github.RPTools:parser:1.8.3'
+    implementation 'com.github.RPTools:dicelib:1.6.6'
 
     // Currently hosted on nerps.net/repo
     implementation group: 'com.jidesoft', name: 'jide-common', version: '3.7.9'
@@ -267,7 +269,8 @@ dependencies {
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
 
     // For PDF image extraction
-    implementation 'org.apache.pdfbox:pdfbox:2.0.18'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.20'
+    implementation 'org.apache.pdfbox:pdfbox-tools:2.0.20'
     implementation 'org.bouncycastle:bcmail-jdk15on:1.64'								// To decrypt passworded/secured pdf's
     implementation 'com.github.jai-imageio:jai-imageio-core:1.4.0'						// For pdf image extraction, specifically for jpeg2000 (jpx) support.
     implementation 'com.github.jai-imageio:jai-imageio-jpeg2000:1.3.0'					// For pdf image extraction, specifically for jpeg2000 (jpx) support.

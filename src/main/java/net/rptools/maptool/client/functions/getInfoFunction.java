@@ -44,6 +44,7 @@ import net.rptools.maptool.util.MapToolSysInfoProvider;
 import net.rptools.maptool.util.SysInfoProvider;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.AbstractFunction;
 
 public class getInfoFunction extends AbstractFunction {
@@ -73,7 +74,8 @@ public class getInfoFunction extends AbstractFunction {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> param)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> param)
       throws ParserException {
     String infoType = param.get(0).toString();
 
@@ -103,10 +105,8 @@ public class getInfoFunction extends AbstractFunction {
     JsonObject minfo = new JsonObject();
     Zone zone = MapTool.getFrame().getCurrentZoneRenderer().getZone();
 
-    if (!MapTool.getParser().isMacroTrusted()) {
-      if (!zone.isVisible()) {
-        throw new ParserException(I18N.getText("macro.function.general.noPerm", "getInfo('map')"));
-      }
+    if (!MapTool.getParser().isMacroTrusted() && !zone.isVisible()) {
+      throw new ParserException(I18N.getText("macro.function.general.noPerm", "getInfo('map')"));
     }
 
     minfo.addProperty("name", zone.getName());
@@ -171,6 +171,10 @@ public class getInfoFunction extends AbstractFunction {
     cinfo.addProperty("show portrait", AppPreferences.getShowPortrait());
     cinfo.addProperty("show stat sheet", AppPreferences.getShowStatSheet());
     cinfo.addProperty("file sync directory", AppPreferences.getFileSyncPath());
+    cinfo.addProperty("show avatar in chat", AppPreferences.getShowAvatarInChat());
+    cinfo.addProperty(
+        "suppress tooltips for macroLinks", AppPreferences.getSuppressToolTipsForMacroLinks());
+    cinfo.addProperty("use tooltips for inline rolls", AppPreferences.getUseToolTipForInlineRoll());
     cinfo.addProperty("version", MapTool.getVersion());
     cinfo.addProperty(
         "isFullScreen", MapTool.getFrame().isFullScreen() ? BigDecimal.ONE : BigDecimal.ZERO);
@@ -370,7 +374,7 @@ public class getInfoFunction extends AbstractFunction {
    * @return the debug information.
    * @throws ParserException if an error occurs.
    */
-  private JsonObject getDebugInfo() throws ParserException {
+  private JsonObject getDebugInfo() {
     return sysInfoProvider.getSysInfoJSON();
   }
 }

@@ -58,7 +58,7 @@ public class HTMLDialog extends JDialog implements HTMLPanelContainer {
   private final String name;
 
   /** Can the dialog be resized? */
-  private final boolean canResize = true;
+  private static final boolean canResize = true;
 
   /** The parent of the dialog */
   private final Frame parent;
@@ -85,6 +85,18 @@ public class HTMLDialog extends JDialog implements HTMLPanelContainer {
       return dialogs.get(name).isVisible();
     }
     return false;
+  }
+
+  /**
+   * Runs a javascript on a dialog.
+   *
+   * @param name the name of the dialog
+   * @param script the script to run
+   * @return true if the dialog exists and can run the script, false otherwise
+   */
+  public static boolean runScript(String name, String script) {
+    HTMLDialog dialog = dialogs.get(name);
+    return dialog != null && dialog.panel.runJavascript(script);
   }
 
   /**

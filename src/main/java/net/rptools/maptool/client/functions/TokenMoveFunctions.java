@@ -51,6 +51,7 @@ import net.rptools.maptool.model.Zone;
 import net.rptools.maptool.model.ZonePoint;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.AbstractFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,10 +76,10 @@ public class TokenMoveFunctions extends AbstractFunction {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> parameters)
       throws ParserException {
-    final Token tokenInContext =
-        ((MapToolVariableResolver) parser.getVariableResolver()).getTokenInContext();
+    final Token tokenInContext = ((MapToolVariableResolver) resolver).getTokenInContext();
     if (tokenInContext == null) {
       throw new ParserException(
           I18N.getText("macro.function.general.noImpersonated", functionName));
@@ -94,7 +95,7 @@ public class TokenMoveFunctions extends AbstractFunction {
               I18N.getText("macro.function.general.argumentTypeN", functionName, 1));
         }
         val = (BigDecimal) parameters.get(0);
-        useDistancePerCell = val == null || !val.equals(BigDecimal.ZERO);
+        useDistancePerCell = !val.equals(BigDecimal.ZERO);
       }
       Path<? extends AbstractPoint> path = tokenInContext.getLastPath();
 
@@ -188,7 +189,7 @@ public class TokenMoveFunctions extends AbstractFunction {
                 "macro.function.general.wrongNumParam", functionName, 2, parameters.size()));
       }
     }
-    return null;
+    throw new ParserException(I18N.getText("macro.function.general.unknownFunction", functionName));
   }
 
   private List<Map<String, Integer>> crossedToken(
@@ -466,13 +467,7 @@ public class TokenMoveFunctions extends AbstractFunction {
     List<ZoneRenderer> zrenderers = MapTool.getFrame().getZoneRenderers();
     for (ZoneRenderer zr : zrenderers) {
       List<Token> tokenList =
-          zr.getZone()
-              .getTokensFiltered(
-                  new Zone.Filter() {
-                    public boolean matchToken(Token t) {
-                      return t.getName().toLowerCase().startsWith("lib:");
-                    }
-                  });
+          zr.getZone().getTokensFiltered(t -> t.getName().toLowerCase().startsWith("lib:"));
       for (Token token : tokenList) {
         // If the token is not owned by everyone and all owners are GMs
         // then we are in

@@ -4,6 +4,7 @@
 Lots of enhancements, bug fixes and improvements to the code base.
 
 ## Highlights
+- Significant improvements in macro run times giving a 4x to 10x (and sometimes more) reduction in run times.
 - Macro errors now produce a _call stack_ showing the macro calls leading to the error.
   ```
   Function "setTokenDrawOrder" requires at least 1 parameters; 0 were provided.
@@ -13,18 +14,35 @@ Lots of enhancements, bug fixes and improvements to the code base.
 - Several Export Screenshot bugs fixed.
 
 ## Enhancements
+- [#2032][i2032] Added various Preferences settings to output of `getInfo("client")`.  Added _personal server_ status to `getInfo("server")`.
+- [#1986][i1986] Stat sheets and token notes now appear above Overlays.
 - [#1958][i1958] Moving a token into a unreachable location adds a `fail` key/value pair to the last object in the array of location objects returned by `getLastPath()` or to `onTokenMove`.
+- [#1898][i1898] A number of improvements to macro performance resulting in as much as 10x or more reduction in run time.
 - [#1890][i1890] Map name parameter added to `removeToken()` function. `copyToken()` function cleaned up internally.
 - [#1882][i1882] NullPointerException messages now include more information about _why_ the error occured.
 - [#1861][i1861] Macro errors now produce a _call stack_ showing the macro calls leading to the error.
+- [#1726][i1726] Lumens value added to Personal Lights in Sight definitions. This allows Sight definitions that will see into areas of darkness. 
 
 ## Bug Fixes
+- [#2081][i2081] Universal VTT map import wasn't applying portal closed flag to enable/disable VBL on portals. Fixed. 
+- [#2078][i2078] Event `onChangeToken` was being generated multiple times even when token wasn't changed. Was repeating indefinitely on impersonated tokens. Fixed. 
+- [#2074][i2074] Updating overlay wasn't removing event handlers, e.g.`onChangeSelection`. Fixed. 
+- [#2069][i2069] Tokens partially out of line-of-sight were fully shown on player clients. Fixed. 
+- [#2057][i2057] Token properties with a single element JSON array returned bad results when accessed. Not in published code. Fixed. 
+- [#2056][i2056] Form submit for dialogs, frames and overlays was on wrong thread leading to inconsistent results from macro functions such as `getToken()`. Fixed. 
+- [#2041][i2041] A number of macro functions if called with the wrong case such as `getplayername()` instead of `getPlayerName()`, would either call the wrong function internally or return the wrong result. A parser exception will now be thrown instead.  See issue for more details. 
+- [#2040][i2040] Vision of player-owned NPC tokens were not visible when no PC tokens were on map. Fixed. 
+- [#2037][i2037] Clicking on Move Up/Down buttons with only a Single bar defined was throwing an exception. Fixed. 
+- [#2023][i2023] Moving a token on a map with FoW and triggering an `onTokenMove` event that moved the token to a different map would cause an NPE. Fixed. 
+- [#2021][i2021] Double-clicking on token in Initiative List wasn't updating Selected panel. Fixed. 
+- [#2006][i2006] Some themes still had some UI elements using fonts lacking CJK support. Fixed. 
 - [#1996][i1996] Error message for missing remote repository was missing closing quote. Fixed. 
+- [#1995][i1995] Function `capitalize()` would always treat numbers and symbols as word boundaries. New parameter allows for turning off.   
 - [#1988][i1988] Audio funciton `playClip()` was hogging the JavaFX application thread. Fixed. 
 - [#1976][i1976] Calling `overlay()` with new content was not erasing previous content. Fixed.
 - [#1974][i1974] Disabling deterministic expression building was causing NPEs. Not in released builds. Fixed.
 - [#1972][i1972] Using `listGet()` on lists where elements had spaces in the name would fail. Fixed.
-- [#1962][i1962] Selecting colors in Drawing tool color palette could fail if mouse was moved between click and release. Fixed. 
+- [#1962][i1962] Selecting colors in Drawing tool color palette could fail if mouse is moved between click and release. Fixed. 
 - [#1950][i1950] Calling `getname()` instead of `getName()` was calling `setName() instead. Fixed.
 - [#1948][i1948] Multiple fixes to Exporting Screenshots.
   - Uninitialized variables if attempting to do an Entire Map export would cause NPE. Fixed.
@@ -50,16 +68,41 @@ Lots of enhancements, bug fixes and improvements to the code base.
 - [#1874][i1874] Macro function `getMacroProps()` was returning a misnamed property (`toolapplyToSelected`). Fixed.
 - [#1867][i1867] Macro links to macros with no output would produce an empty line in chat. Fixed.
 - [#1863][i1863] HTML5 form submit was not allowed at document load. Fixed.
+- [#1737][i1737] Some CMYK JPEGs would appear as all black. Fixed.
+- [#1705][i1705] Map functions `getCurrentMapName(), getMapVisible() and setMapVisible()` would throw NPEs if campaign had no maps. Fixed.
+- [#1560][i1560] Default property settings using assigment expressions, i.e.`{prop2 = prop1}`, would fail. Fixed.
 - [#715][i715] Bad or missing remote repository would produce a Null Pointer Exception in the log but not inform the user. Fixed.
 
 ## Other
+- [#2049][i2049] Removed a number of classes that were obsolete/unused. 
+- [#2047][i2047] Code cleanup. Removed obsolete Java version checks.  
 - [#2019][i2019] Updated to Parse 1.8.0 which added support for logical operators to Expression.format()/InlineTreeFormatter..  
+- [#1992][i1992] Code cleanup of I18NManager.
+- [#1947][i1947] MapTool credits updated with recent (and long time) contributors.  
 - [#1943][i1943] Updated to Parse 1.7.1 which adds ISO-8859-1 character support. Can now use accented characters in Token Properties and macros.  
 - [#1907][i1907] Dicelib updated to 1.6.2 for fixes to `getRolled()` and `getNewRolls()`.
 
+[i2081]: https://github.com/RPTools/maptool/issues/2081
+[i2078]: https://github.com/RPTools/maptool/issues/2078
+[i2074]: https://github.com/RPTools/maptool/issues/2074
+[i2069]: https://github.com/RPTools/maptool/issues/2069
+[i2057]: https://github.com/RPTools/maptool/issues/2057
+[i2056]: https://github.com/RPTools/maptool/issues/2056
+[i2049]: https://github.com/RPTools/maptool/issues/2049
+[i2047]: https://github.com/RPTools/maptool/issues/2047
+[i2041]: https://github.com/RPTools/maptool/issues/2041
+[i2040]: https://github.com/RPTools/maptool/issues/2040
+[i2037]: https://github.com/RPTools/maptool/issues/2037
+[i2032]: https://github.com/RPTools/maptool/issues/2032
+[i2023]: https://github.com/RPTools/maptool/issues/2023
+[i2021]: https://github.com/RPTools/maptool/issues/2021
 [i2019]: https://github.com/RPTools/maptool/issues/2019
+[i2006]: https://github.com/RPTools/maptool/issues/2006
 [i1996]: https://github.com/RPTools/maptool/issues/1996
+[i1995]: https://github.com/RPTools/maptool/issues/1995
+[i1992]: https://github.com/RPTools/maptool/issues/1992
 [i1988]: https://github.com/RPTools/maptool/issues/1988
+[i1986]: https://github.com/RPTools/maptool/issues/1986
 [i1976]: https://github.com/RPTools/maptool/issues/1976
 [i1974]: https://github.com/RPTools/maptool/issues/1974
 [i1972]: https://github.com/RPTools/maptool/issues/1972
@@ -67,12 +110,14 @@ Lots of enhancements, bug fixes and improvements to the code base.
 [i1958]: https://github.com/RPTools/maptool/issues/1958
 [i1950]: https://github.com/RPTools/maptool/issues/1950
 [i1948]: https://github.com/RPTools/maptool/issues/1948
+[i1947]: https://github.com/RPTools/maptool/issues/1947
 [i1943]: https://github.com/RPTools/maptool/issues/1943
 [i1938]: https://github.com/RPTools/maptool/issues/1938
 [i1935]: https://github.com/RPTools/maptool/issues/1935
 [i1926]: https://github.com/RPTools/maptool/issues/1926
 [i1921]: https://github.com/RPTools/maptool/issues/1921
 [i1907]: https://github.com/RPTools/maptool/issues/1907
+[i1898]: https://github.com/RPTools/maptool/issues/1898
 [i1896]: https://github.com/RPTools/maptool/issues/1896
 [i1894]: https://github.com/RPTools/maptool/issues/1894
 [i1893]: https://github.com/RPTools/maptool/issues/1893
@@ -89,6 +134,10 @@ Lots of enhancements, bug fixes and improvements to the code base.
 [i1867]: https://github.com/RPTools/maptool/issues/1867
 [i1863]: https://github.com/RPTools/maptool/issues/1863
 [i1861]: https://github.com/RPTools/maptool/issues/1861
+[i1737]: https://github.com/RPTools/maptool/issues/1737
+[i1726]: https://github.com/RPTools/maptool/issues/1726
+[i1705]: https://github.com/RPTools/maptool/issues/1705
+[i1560]: https://github.com/RPTools/maptool/issues/1560
 [i715]: https://github.com/RPTools/maptool/issues/715
 
 ---

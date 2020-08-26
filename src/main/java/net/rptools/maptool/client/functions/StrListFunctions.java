@@ -16,7 +16,6 @@ package net.rptools.maptool.client.functions;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -24,6 +23,7 @@ import java.util.regex.Pattern;
 import net.rptools.maptool.language.I18N;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.AbstractFunction;
 import net.rptools.parser.function.ParameterException;
 import org.apache.commons.lang.StringUtils;
@@ -70,8 +70,8 @@ public class StrListFunctions extends AbstractFunction {
     public abstract boolean visit(int pos, int start, int end);
   }
 
-  public static ArrayList<String> toList(String listStr, String delim) {
-    ArrayList<String> list = new ArrayList<String>();
+  public static List<String> toList(String listStr, String delim) {
+    List<String> list = new ArrayList<String>();
     parse(
         listStr,
         delim,
@@ -157,7 +157,8 @@ public class StrListFunctions extends AbstractFunction {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> parameters)
       throws ParserException {
     Object retval = "";
     String listStr = parameters.get(0).toString().trim();
@@ -552,10 +553,10 @@ public class StrListFunctions extends AbstractFunction {
     String delim = parameters.size() == maxParams ? lastParam : ",";
     String sortStr = (String) parameters.get(1);
 
-    ArrayList<String> list = toList(listStr, delim);
+    List<String> list = toList(listStr, delim);
 
     // Sort the list appropriately and construct the new list string
-    Collections.sort(list, new strComp(sortStr));
+    list.sort(new strComp(sortStr));
 
     StringBuilder retVal = new StringBuilder();
     int size = list.size();

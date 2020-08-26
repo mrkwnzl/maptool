@@ -47,6 +47,7 @@ import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.maptool.util.StringUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.AbstractFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -83,7 +84,8 @@ public class MacroLinkFunction extends AbstractFunction {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> args)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> args)
       throws ParserException {
 
     boolean formatted;
@@ -116,7 +118,7 @@ public class MacroLinkFunction extends AbstractFunction {
       linkArgs = args.size() > 2 ? args.get(2).toString() : "";
       linkTarget = args.size() > 3 ? args.get(3).toString() : "Impersonated";
 
-    } else { // execLink
+    } else if ("execLink".equalsIgnoreCase(functionName)) {
       if (!MapTool.getParser().isMacroTrusted()) {
         throw new ParserException(I18N.getText("macro.function.general.noPerm", functionName));
       }
@@ -145,6 +147,9 @@ public class MacroLinkFunction extends AbstractFunction {
       }
       sendExecLink(link, defer, targets);
       return "";
+    } else {
+      throw new ParserException(
+          I18N.getText("macro.function.general.unknownFunction", functionName));
     }
 
     StringBuilder sb = new StringBuilder();
@@ -247,12 +252,10 @@ public class MacroLinkFunction extends AbstractFunction {
 
     for (String s : vals) {
       String decoded = URLDecoder.decode(s, StandardCharsets.UTF_8);
-      if (propList.length() == 0) {
-        propList.append(decoded);
-      } else {
+      if (propList.length() != 0) {
         propList.append(" ; ");
-        propList.append(decoded);
       }
+      propList.append(decoded);
     }
     return propList.toString();
   }
@@ -269,12 +272,10 @@ public class MacroLinkFunction extends AbstractFunction {
     for (String s : vals) {
       s = s.trim();
       String encoded = URLEncoder.encode(s, StandardCharsets.UTF_8);
-      if (args.length() == 0) {
-        args.append(encoded);
-      } else {
+      if (args.length() != 0) {
         args.append("&");
-        args.append(encoded);
       }
+      args.append(encoded);
     }
 
     return args.toString();
@@ -652,54 +653,50 @@ public class MacroLinkFunction extends AbstractFunction {
   private boolean isAutoExecLink(String link) {
     Matcher m = AUTOEXEC_PATTERN.matcher(link);
 
-    if (m.matches()) {
-      if (m.group(1).equalsIgnoreCase("macro")) {
-        String command = m.group(2);
-        try {
-          String[] parts = command.split("@");
-          if (parts.length > 1) {
-            Token token = MapTool.getParser().getTokenMacroLib(parts[1]);
-            if (token == null) {
-              return false;
-            }
-            MacroButtonProperties mbp = token.getMacro(parts[0], false);
-            if (mbp == null) {
-              return false;
-            }
-            if (mbp.getAutoExecute()) {
-              // Next make sure that it is trusted
-              boolean trusted = true;
+    if (m.matches() && m.group(1).equalsIgnoreCase("macro")) {
+      String command = m.group(2);
+      try {
+        String[] parts = command.split("@");
+        if (parts.length > 1) {
+          Token token = MapTool.getParser().getTokenMacroLib(parts[1]);
+          if (token == null) {
+            return false;
+          }
+          MacroButtonProperties mbp = token.getMacro(parts[0], false);
+          if (mbp == null) {
+            return false;
+          }
+          if (mbp.getAutoExecute()) {
+            // Next make sure that it is trusted
+            boolean trusted = true;
 
-              // If the token is not owned by everyone and all
-              // owners are GMs then we are in
-              // a secure context as players can not modify the
-              // macro so GM can specify what
-              // ever they want.
-              if (token != null) {
-                if (token.isOwnedByAll()) {
-                  trusted = false;
-                } else {
-                  Set<String> gmPlayers = new HashSet<>();
-                  for (Object o : MapTool.getPlayerList()) {
-                    Player p = (Player) o;
-                    if (p.isGM()) {
-                      gmPlayers.add(p.getName());
-                    }
-                  }
-                  for (String owner : token.getOwners()) {
-                    if (!gmPlayers.contains(owner)) {
-                      trusted = false;
-                      break;
-                    }
-                  }
+            // If the token is not owned by everyone and all
+            // owners are GMs then we are in
+            // a secure context as players can not modify the
+            // macro so GM can specify what
+            // ever they want.
+            if (token.isOwnedByAll()) {
+              trusted = false;
+            } else {
+              Set<String> gmPlayers = new HashSet<>();
+              for (Object o : MapTool.getPlayerList()) {
+                Player p = (Player) o;
+                if (p.isGM()) {
+                  gmPlayers.add(p.getName());
                 }
               }
-              return trusted;
+              for (String owner : token.getOwners()) {
+                if (!gmPlayers.contains(owner)) {
+                  trusted = false;
+                  break;
+                }
+              }
             }
+            return trusted;
           }
-        } catch (ParserException e) {
-          log.error("Exception while handling macro " + command, e);
         }
+      } catch (ParserException e) {
+        log.error("Exception while handling macro " + command, e);
       }
     }
     return false;

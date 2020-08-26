@@ -14,11 +14,12 @@
  */
 package net.rptools.maptool.util;
 
-import java.util.Locale;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.rptools.maptool.client.AppUtil;
@@ -46,7 +47,7 @@ public class UserJvmOptions {
   private static final String I18N_RESOURCE_PATH = "net/rptools/maptool/language";
   private static final String CURRENT_DATA_DIR = AppUtil.getAppHome().getName();
   private static final Pattern UNIT_PATTERN = Pattern.compile("^([0-9]+)[g|G|m|M|k|K]$");
-  private static final TreeMap<String, String> LANGUAGE_MAP = getResourceBundles();
+  private static final Map<String, String> LANGUAGE_MAP = getResourceBundles();
 
   private static FileBasedConfigurationBuilder<INIConfiguration> configurationBuilder;
   private static SubnodeConfiguration jvmNodeConfiguration;
@@ -66,17 +67,22 @@ public class UserJvmOptions {
     setJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION, "");
   }
 
-  public static void loadAppCfg() {
+  public static boolean loadAppCfg() {
     Configurations configurations = new Configurations();
     INIConfiguration iniConfiguration;
 
-    configurationBuilder = configurations.iniBuilder(AppUtil.getAppCfgFile());
+    File cfgFile = AppUtil.getAppCfgFile();
+    if (cfgFile == null || !cfgFile.exists()) {
+      return false;
+    }
+
+    configurationBuilder = configurations.iniBuilder(cfgFile);
 
     try {
       iniConfiguration = configurationBuilder.getConfiguration();
     } catch (ConfigurationException e) {
       log.error("Error loading JVM cfg file.", e);
-      return;
+      return false;
     }
 
     // Default is " = " which breaks launcher
@@ -105,10 +111,13 @@ public class UserJvmOptions {
                 log.debug("Updating on load {}:{}", key, jvmNodeConfiguration.getString(key));
               }
             });
+
+    return true;
   }
 
-  public static void saveAppCfg() {
-    // Special handling of -X memory parameters
+  public static boolean saveAppCfg() {
+    // Special handling of -X memory parameters and parms that don't follow key=value notation
+    // e.g. -XSS and -XX:+ShowCodeDetailsInExceptionMessages
     jvmNodeConfiguration
         .getKeys()
         .forEachRemaining(
@@ -120,7 +129,25 @@ public class UserJvmOptions {
                 String newKey = key + jvmNodeConfiguration.getString(key);
                 jvmNodeConfiguration.setProperty(newKey, value);
                 jvmNodeConfiguration.clearProperty(key);
-                log.debug("Updating before save {}:{}", key, jvmNodeConfiguration.getString(key));
+                log.debug(
+                    "Updating {}={} to {}={}",
+                    key,
+                    jvmNodeConfiguration.getString(key),
+                    newKey,
+                    value);
+              } else if (key.startsWith("-XX")) {
+                String value = "";
+                String newKey =
+                    key + ":" + jvmNodeConfiguration.getString(key).replaceAll("\\=", "");
+                jvmNodeConfiguration.setProperty(newKey, value);
+                jvmNodeConfiguration.clearProperty(key);
+
+                log.debug(
+                    "Updating {}={} to {}={}",
+                    key,
+                    jvmNodeConfiguration.getString(key),
+                    newKey,
+                    value);
               }
             });
 
@@ -129,10 +156,43 @@ public class UserJvmOptions {
     try {
       configurationBuilder.save();
     } catch (ConfigurationException e) {
+      String msgKey;
+      if (AppUtil.MAC_OS_X) {
+        msgKey = "startup.config.cantWrite.macosx";
+      } else if (AppUtil.WINDOWS) {
+        msgKey = "startup.config.cantWrite.windows";
+      } else if (AppUtil.LINUX_OR_UNIX) {
+        msgKey = "startup.config.cantWrite.linuxOrUnix";
+      } else {
+        msgKey = "startup.config.cantWrite.unknown";
+      }
+
+      MapTool.showError(I18N.getText(msgKey, AppUtil.getAppCfgFile().toString()));
+
       log.error("Error saving jvm cfg file.", e);
+      return false;
     }
 
     log.debug("JVM configurations saved!");
+
+    copyConfigFile();
+    return true;
+  }
+
+  private static void copyConfigFile() {
+    File userDirAppConfig = AppUtil.getDataDirAppCfgFile();
+    File appConfig = AppUtil.getAppCfgFile();
+
+    if (appConfig == null || !appConfig.canWrite()) {
+      return;
+    }
+
+    try {
+      Files.copy(
+          appConfig.toPath(), userDirAppConfig.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    } catch (IOException e) {
+      MapTool.showError("msg.error.copyingStartupConfig", e);
+    }
   }
 
   public static String getJvmOption(JVM_OPTION option) {
@@ -194,16 +254,12 @@ public class UserJvmOptions {
       return false;
     } else {
       // Don't allow values less than 0
-      if (Integer.parseInt(m.group(1)) <= 0) {
-        return false;
-      } else {
-        return true;
-      }
+      return Integer.parseInt(m.group(1)) > 0;
     }
   }
 
-  private static TreeMap<String, String> getResourceBundles() {
-    TreeMap<String, String> languages = new TreeMap<>();
+  private static Map<String, String> getResourceBundles() {
+    Map<String, String> languages = new TreeMap<>();
 
     Locale loc = new Locale("en");
     languages.put(loc.getDisplayLanguage(), "");
@@ -211,7 +267,7 @@ public class UserJvmOptions {
     Reflections reflections = new Reflections(I18N_RESOURCE_PATH, new ResourcesScanner());
     Set<String> resourcePathSet =
         reflections.getResources(Pattern.compile(I18N_RESOURCE_PREFIX + ".*\\.properties"));
-    log.info("resourcePathSet: " + resourcePathSet.toString());
+    log.debug("getResourceBundles() resourcePathSet: " + resourcePathSet.toString());
 
     for (String resourcePath : resourcePathSet) {
       int index = I18N_RESOURCE_PATH.length() + I18N_RESOURCE_PREFIX.length() + 1;

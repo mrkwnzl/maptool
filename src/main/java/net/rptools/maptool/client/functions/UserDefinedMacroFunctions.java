@@ -38,11 +38,10 @@ import net.rptools.maptool.client.ui.zone.ZoneRenderer;
 import net.rptools.maptool.model.MacroButtonProperties;
 import net.rptools.maptool.model.Player;
 import net.rptools.maptool.model.Token;
-import net.rptools.maptool.model.Zone;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.Function;
-import net.rptools.parser.function.ParameterException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -90,14 +89,13 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
   private UserDefinedMacroFunctions() {}
 
   @Override
-  public void checkParameters(String functionName, List<Object> parameters)
-      throws ParameterException {
+  public void checkParameters(String functionName, List<Object> parameters) {
     // Do nothing as we do not know what we will need.
   }
 
-  public Object evaluate(Parser parser, String functionName, List<Object> parameters)
+  public Object evaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> parameters)
       throws ParserException {
-    MapToolVariableResolver resolver = (MapToolVariableResolver) parser.getVariableResolver();
     MapToolVariableResolver newResolver;
     JsonArray jarr = new JsonArray();
 
@@ -120,9 +118,10 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
     FunctionDefinition funcDef = userDefinedFunctions.get(functionName);
 
     if (funcDef.newVariableContext) {
-      newResolver = new MapToolVariableResolver(resolver.getTokenInContext());
+      newResolver =
+          new MapToolVariableResolver(((MapToolVariableResolver) resolver).getTokenInContext());
     } else {
-      newResolver = resolver;
+      newResolver = (MapToolVariableResolver) resolver;
     }
 
     try {
@@ -130,7 +129,7 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
       output =
           MapTool.getParser()
               .runMacro(
-                  resolver,
+                  (MapToolVariableResolver) resolver,
                   newResolver.getTokenInContext(),
                   funcDef.macroName,
                   macroArgs,
@@ -203,7 +202,7 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
 
       if (isFunctionDefined(name)) {
         // If it is already defined as what this then do nothing...
-        if (userDefinedFunctions.get(name).equals(macro)) {
+        if (userDefinedFunctions.get(name).macroName.equals(macro)) {
           return;
         }
         // We have to rename the old function
@@ -219,7 +218,8 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
     MapToolScriptSyntax.resetScriptSyntax();
   }
 
-  public Object executeOldFunction(Parser parser, List<Object> parameters) throws ParserException {
+  public Object executeOldFunction(
+      Parser parser, VariableResolver resolver, List<Object> parameters) throws ParserException {
     String functionName = currentFunction.peek();
     FunctionRedefinition functionRedef = redefinedFunctions.get(functionName);
     if (functionRedef == null) {
@@ -227,7 +227,7 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
     }
     Function function = functionRedef.function;
     function.checkParameters(functionName, parameters);
-    return function.evaluate(parser, functionRedef.functionName, parameters);
+    return function.evaluate(parser, resolver, functionRedef.functionName, parameters);
   }
 
   public boolean isFunctionDefined(String name) {
@@ -240,13 +240,7 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
     List<ZoneRenderer> zrenderers = MapTool.getFrame().getZoneRenderers();
     for (ZoneRenderer zr : zrenderers) {
       List<Token> tokenList =
-          zr.getZone()
-              .getTokensFiltered(
-                  new Zone.Filter() {
-                    public boolean matchToken(Token t) {
-                      return t.getName().toLowerCase().startsWith("lib:");
-                    }
-                  });
+          zr.getZone().getTokensFiltered(t -> t.getName().toLowerCase().startsWith("lib:"));
 
       for (Token token : tokenList) {
         // If the token is not owned by everyone and all owners are GMs then we are in its a trusted
@@ -369,9 +363,9 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
       if (functionName.equals(function.getKey())) {
         FunctionDefinition funcDef = function.getValue();
         String fullMacroName = funcDef.macroName;
-        if (fullMacroName != null && fullMacroName.indexOf("@") > 0) {
-          String tokenName = fullMacroName.substring(fullMacroName.indexOf("@") + 1);
-          String macroName = fullMacroName.substring(0, fullMacroName.indexOf("@"));
+        if (fullMacroName != null && fullMacroName.indexOf('@') > 0) {
+          String tokenName = fullMacroName.substring(fullMacroName.indexOf('@') + 1);
+          String macroName = fullMacroName.substring(0, fullMacroName.indexOf('@'));
           Token token = FindTokenFunctions.findToken(tokenName);
           if (token != null) {
             List<MacroButtonProperties> macros = token.getMacroList(false);
@@ -397,9 +391,9 @@ public class UserDefinedMacroFunctions implements Function, AdditionalFunctionDe
       if (functionName.equals(function.getKey())) {
         final FunctionDefinition funcDef = function.getValue();
         final String fullMacroName = funcDef.macroName;
-        if (fullMacroName != null && fullMacroName.indexOf("@") > 0) {
-          final String tokenName = fullMacroName.substring(fullMacroName.indexOf("@") + 1);
-          final String macroName = fullMacroName.substring(0, fullMacroName.indexOf("@"));
+        if (fullMacroName != null && fullMacroName.indexOf('@') > 0) {
+          final String tokenName = fullMacroName.substring(fullMacroName.indexOf('@') + 1);
+          final String macroName = fullMacroName.substring(0, fullMacroName.indexOf('@'));
           final Token token = FindTokenFunctions.findToken(tokenName);
           if (token != null) {
             final List<MacroButtonProperties> macros = token.getMacroList(false);

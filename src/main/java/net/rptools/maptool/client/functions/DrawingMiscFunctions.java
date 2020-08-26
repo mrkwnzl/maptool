@@ -23,7 +23,6 @@ import java.awt.geom.Area;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +36,7 @@ import net.rptools.maptool.model.drawing.DrawnElement;
 import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 
 public class DrawingMiscFunctions extends DrawingFunctions {
   private static final DrawingMiscFunctions instance = new DrawingMiscFunctions();
@@ -57,7 +57,8 @@ public class DrawingMiscFunctions extends DrawingFunctions {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> parameters)
       throws ParserException {
     checkTrusted(functionName);
     String mapName = parameters.get(0).toString();
@@ -161,9 +162,7 @@ public class DrawingMiscFunctions extends DrawingFunctions {
    */
   private List<String> findDrawings(List<DrawnElement> drawableList, String name) {
     List<String> drawingList = new LinkedList<String>();
-    Iterator<DrawnElement> iter = drawableList.iterator();
-    while (iter.hasNext()) {
-      DrawnElement de = iter.next();
+    for (DrawnElement de : drawableList) {
       if (de.getDrawable() instanceof AbstractDrawing) {
         if (name.equals(((AbstractDrawing) de.getDrawable()).getName())) {
           drawingList.add(de.getDrawable().getId().toString());

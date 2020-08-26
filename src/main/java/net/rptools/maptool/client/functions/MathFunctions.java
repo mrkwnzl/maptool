@@ -29,6 +29,7 @@ import net.rptools.maptool.language.I18N;
 import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
+import net.rptools.parser.VariableResolver;
 import net.rptools.parser.function.AbstractFunction;
 import net.rptools.parser.function.ParameterException;
 
@@ -224,7 +225,8 @@ public class MathFunctions extends AbstractFunction {
   }
 
   @Override
-  public Object childEvaluate(Parser parser, String functionName, List<Object> param)
+  public Object childEvaluate(
+      Parser parser, VariableResolver resolver, String functionName, List<Object> param)
       throws ParserException {
     if ("math.abs".equals(functionName)) {
       List<BigDecimal> nparam = getNumericParams(param, 1, 1, functionName);
@@ -340,9 +342,6 @@ public class MathFunctions extends AbstractFunction {
     } else if ("math.toRadians".equals(functionName)) {
       List<BigDecimal> nparam = getNumericParams(param, 1, 1, functionName);
       return BigDecimal.valueOf(Math.toRadians(nparam.get(0).doubleValue()));
-    } else if ("math.toRadians".equals(functionName)) {
-      List<BigDecimal> nparam = getNumericParams(param, 1, 1, functionName);
-      return BigDecimal.valueOf(Math.toRadians(nparam.get(0).doubleValue()));
     } else if ("math.toDegrees".equals(functionName)) {
       List<BigDecimal> nparam = getNumericParams(param, 1, 1, functionName);
       return BigDecimal.valueOf(Math.toDegrees(nparam.get(0).doubleValue()));
@@ -415,7 +414,7 @@ public class MathFunctions extends AbstractFunction {
       return getMedian(theValues);
     }
 
-    return "";
+    throw new ParserException(I18N.getText("macro.function.general.unknownFunction", functionName));
   }
 
   /**
